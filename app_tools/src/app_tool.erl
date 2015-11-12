@@ -51,7 +51,7 @@ save_to_file (Data, File, _) ->
 
 check_dir (Dir) ->
     case filelib:is_dir(Dir) of
-        false -> ?EXIT(Dir ++ " not a directory");
+        false -> filelib:ensure_dir(Dir);
         true -> ok
     end.
     

@@ -26,7 +26,7 @@ usage () ->
 run (1) ->
     ?MSG("Transform Protocol To Erlang ...~n"),
     check_dir(get_default_dir(protocol_txt)),
-    ok = filelib:ensure_dir(get_default_dir(protocol_erl)),
+    check_dir(get_default_dir(protocol_erl)),
     delete_dir_file(get_default_dir(protocol_erl), ".erl"),
     generate_protocol(file_find(get_default_dir(protocol_txt), ".txt")),
     ok;
@@ -81,7 +81,7 @@ get_depth_prefix (Depth, Prefix) ->
     
 check_dir (Dir) ->
     case filelib:is_dir(Dir) of
-        false -> ?EXIT(Dir ++ " not a directory");
+        false -> filelib:ensure_dir(Dir);
         true -> ok
     end.
     
