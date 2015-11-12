@@ -1,0 +1,41 @@
+player = 1
+{
+    client_register = 1
+    {
+        in
+        {
+            username    : string
+            password    : string
+        }
+        
+        out
+        {
+            result : enum
+            {
+                SUCCESS
+                USERNAME_EXISTS
+                FAILED
+            }
+        }
+    }
+    
+    client_login = 2
+    {
+        in
+        {
+            username    : string
+            password    : string
+        }
+        
+        out
+        {
+            result : enum
+            {
+                SUCCESS
+                BAD_USERNAME
+                BAD_PASSWORD
+                FAILED
+            }
+        }
+    }
+}
