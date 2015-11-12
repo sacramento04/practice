@@ -14,10 +14,14 @@
 
 -define(LOG_DIR, "./log/").
 
+-define(SERVER_IP, "192.168.24.88").
+-define(SERVER_PORT, 8889).
+
 -record(
     client_state, 
     {
         id = 0,
+        player_id = undefined,
         socket = undefined
     }
 ).

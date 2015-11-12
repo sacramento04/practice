@@ -63,6 +63,11 @@ kill_all () ->
     ).
     
 start_children (N) ->
+    StartId = case get(start_id) of
+        undefined -> 1;
+        SId -> SId
+    end,
+    
     lists:foreach(
         fun(Id) ->
             supervisor:start_child(?MODULE, [Id]),
@@ -75,7 +80,9 @@ start_children (N) ->
             end
         end,
         lists:seq(1, N)
-    ).
+    ), 
+    
+    put(start_id, StartId + N).
     
 send_data (Data) when is_atom(Data) ->
     Bin = atom_to_binary(Data, utf8),

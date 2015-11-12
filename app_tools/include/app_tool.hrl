@@ -4,7 +4,9 @@
     {protocol_erl, "../app_server/protocol/erl/"},
     {protocol_txt, "../app_server/protocol/txt/"},
     {header, "../app_server/include/gen/"},
-    {out, "../app_server/src/gen/"}
+    {out, "../app_server/src/gen/"},
+    {api, "../app_server/src/api/"},
+    {mod, "../app_server/src/mod/"}
 ]).
 
 %% display
@@ -43,15 +45,11 @@
 -define(FWRITE(F, S, O), file:pwrite(F, {cur, O}, ?L2B(S))).
 
 %% db
--define(DB_SRV, "192.168.1.73").
+-define(DB_SRV, "localhost").
 -define(DB_USR, "root").
 -define(DB_PSW, "ybybyb").
--define(GAMEDB, "gamedb").
-
--define(MACRO_LIST, [
-    #macro{table = "ingot_log_type", id = "id",
-        sign = "sign", name = "name", prefix = "ILT_"}
-]).
+-define(DB_NAME, "app_db").
+-define(DB_HRL, "include/db.hrl").
 
 %% record
 -record(doc, {
@@ -96,7 +94,8 @@
     name = "",
     type = nil, %% byte/short/int/long/enum/string/list/class
     class = "",
-    field = []
+    field = [],
+    format_name = ""
 }).
 
 -record(db, {

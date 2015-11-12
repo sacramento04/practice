@@ -972,7 +972,7 @@ write_action_api (Fd, A, PN) ->
 generate_api (Doc) ->
     Dir = get_default_dir(api),
     ok = filelib:ensure_dir(Dir),
-    delete_dir_file(Dir, ".erl"),
+    % delete_dir_file(Dir, ".erl"),
     generate_api(Doc #doc.pro_list, Dir).
     
 generate_api ([], _) ->
@@ -1053,7 +1053,7 @@ generate_api ([Pro | Left], Dir) ->
 generate_mod (Doc) ->
     Dir = get_default_dir(mod),
     ok = filelib:ensure_dir(Dir),
-    delete_dir_file(Dir, ".erl"),
+    % delete_dir_file(Dir, ".erl"),
     generate_mod(Doc #doc.pro_list, Dir).
     
 generate_mod ([], _) ->
@@ -1164,7 +1164,7 @@ init_database () ->
     
     {data, R} = mysql:fetch(db, 
         <<"SELECT `TABLE_NAME` FROM `TABLES` WHERE `TABLE_SCHEMA` = '", 
-            ?GAMEDB, "'">>
+            ?DB_NAME, "'">>
     ),
     
     Rows = lib_mysql:get_rows(R),
@@ -1197,7 +1197,7 @@ init_table_column ([T | L], Db) ->
     {data, R} = mysql:fetch(db,
         ?L2B("SELECT `COLUMN_NAME`, `COLUMN_DEFAULT`, `DATA_TYPE`, `COLUMN_KEY` ,"
             " `EXTRA`, `COLUMN_COMMENT` FROM `COLUMNS` WHERE `TABLE_SCHEMA` = '"
-            ++ ?GAMEDB ++ "' AND `TABLE_NAME` = '" ++ T #table.name ++ "'")
+            ++ ?DB_NAME ++ "' AND `TABLE_NAME` = '" ++ T #table.name ++ "'")
     ),
 
     Rows = lib_mysql:get_rows(R),
@@ -1255,7 +1255,9 @@ generate_db_file (Db) ->
 generate_db_header (Db) ->
     Dir = get_default_dir(header),
     {ok, Fd} = ?FOPEN(Dir ++ "game_db.hrl", [write]),
-    write_db_macro(?MACRO_LIST, Fd),
+    {ok, [MacroList]} = file:consult(?DB_HRL),
+    mysql:fetch(db, <<"USE ", ?DB_NAME>>),
+    write_db_macro(MacroList, Fd),
     write_db_record(Db #db.table_list, Fd),
     ?FCLOSE(Fd).
     
@@ -1303,18 +1305,17 @@ write_db_record ([T | L], Fd) ->
 write_db_macro ([], _) ->
     ok;
 write_db_macro ([M | L], Fd) ->
-    mysql:fetch(db, <<"USE ", ?GAMEDB>>),
+    #{table := Table, id := Id, sign := Sign, name := Name, prefix := Prefix} = M,
     
-    {data, R} = mysql:fetch(db, ?L2B("SELECT `"
-        ++ M #macro.id ++ "`, `" ++ M #macro.sign ++ "`, `"
-        ++ M #macro.name ++ "` FROM " ++ M #macro.table)
+    {data, R} = mysql:fetch(db, ?L2B("SELECT `" ++ Id ++ "`, `" ++ Sign ++ 
+        "`, `" ++ Name ++ "` FROM " ++ Table)
     ),
     
     Rows = lib_mysql:get_rows(R),
     
     [
         begin
-            ?FWRITE(Fd, "-define(" ++ M #macro.prefix
+            ?FWRITE(Fd, "-define(" ++ Prefix
                 ++ ?TUP(?B2L(lib_mysql:get_field(Row, <<"sign">>)))
                 ++ ", " ++ ?I2L(lib_mysql:get_field(Row, <<"id">>))
                 ++ "). %% " 
@@ -1932,9 +1933,7 @@ write_db_select (L, Fd) ->
     
 write_db_select ([], Fd, S2L, S3L) ->
     write_db_select_2(lists:reverse(S2L), Fd),
-    ?FWRITE(Fd, ".", -1),
-    write_db_select_3(lists:reverse(S3L), Fd),
-    ?FWRITE(Fd, ".", -1);
+    write_db_select_3(lists:reverse(S3L), Fd);
 write_db_select ([T | L], Fd, S2L, S3L) ->
     case table_need_split(T) of
         {true, _} ->
@@ -1943,8 +1942,8 @@ write_db_select ([T | L], Fd, S2L, S3L) ->
             write_db_select(L, Fd, [T | S2L], S3L)
     end.
     
-write_db_select_2 ([], _) ->
-    ok;
+write_db_select_2 ([], Fd) ->
+    ?FWRITE(Fd, "\n\nselect (_, _) ->\n\texit(bad_match).");
 write_db_select_2 ([T | L], Fd) ->
     ?FWRITE(Fd, "\n\nselect (" ++ T #table.name ++ 
         ", MatchSpec) ->\n\tets:select(t_" ++
@@ -1953,8 +1952,8 @@ write_db_select_2 ([T | L], Fd) ->
     
     write_db_select_2(L, Fd).
     
-write_db_select_3 ([], _) ->
-    ok;
+write_db_select_3 ([], Fd) ->
+    ?FWRITE(Fd, "\n\nselect (_, _, _) ->\n\texit(bad_match).");
 write_db_select_3 ([T | L], Fd) ->
     ?FWRITE(Fd, "\n\nselect (" ++ T #table.name ++
         ", ModeOrFragId, MatchSpec) ->"
@@ -2161,9 +2160,7 @@ write_db_delete_select (L, Fd) ->
     
 write_db_delete_select ([], Fd, S2L, S3L) ->
     write_db_delete_select_2(lists:reverse(S2L), Fd),
-    ?FWRITE(Fd, ".", -1),
-    write_db_delete_select_3(lists:reverse(S3L), Fd),
-    ?FWRITE(Fd, ".", -1);
+    write_db_delete_select_3(lists:reverse(S3L), Fd);
 write_db_delete_select ([T | L], Fd, S2L, S3L) ->
     case table_need_split(T) of
         {true, _} ->
@@ -2172,8 +2169,8 @@ write_db_delete_select ([T | L], Fd, S2L, S3L) ->
             write_db_delete_select(L, Fd, [T | S2L], S3L)
     end.
     
-write_db_delete_select_2 ([], _) ->
-    ok;
+write_db_delete_select_2 ([], Fd) ->
+    ?FWRITE(Fd, "\n\ndelete_select (_, _) ->\n\texit(bad_match).");
 write_db_delete_select_2 ([T | L], Fd) ->
     ?FWRITE(Fd, "\n\ndelete_select (" ++ T #table.name ++ 
         ", MatchSpec) ->\n\t?ENSURE_TRAN,"
@@ -2187,8 +2184,8 @@ write_db_delete_select_2 ([T | L], Fd) ->
     
     write_db_delete_select_2(L, Fd).
     
-write_db_delete_select_3 ([], _) ->
-    ok;
+write_db_delete_select_3 ([], Fd) ->
+    ?FWRITE(Fd, "\n\ndelete_select (_, _, _) ->\n\texit(bad_match).");
 write_db_delete_select_3 ([T | L], Fd) ->
     ?FWRITE(Fd, "\n\ndelete_select (" ++ T #table.name ++
         ", ModeOrFragKey, MatchSpec) ->\n\t?ENSURE_TRAN,"
@@ -2241,9 +2238,7 @@ write_db_ets (L, Fd) ->
     
 write_db_ets ([], Fd, S1L, S2L) ->
     write_db_ets_1(lists:reverse(S1L), Fd, true),
-    ?FWRITE(Fd, ".", -1),
-    write_db_ets_2(lists:reverse(S2L), Fd, true),
-    ?FWRITE(Fd, ".", -1);
+    write_db_ets_2(lists:reverse(S2L), Fd, true);
 write_db_ets ([T | L], Fd, S1L, S2L) ->
     case table_need_split(T) of
         {true, _} ->
@@ -2252,8 +2247,13 @@ write_db_ets ([T | L], Fd, S1L, S2L) ->
             write_db_ets(L, Fd, [T | S1L], S2L)
     end.
     
-write_db_ets_1 ([], _, _) ->
-    ok;
+write_db_ets_1 ([], Fd, Head) ->
+    case Head of
+        true -> ?FWRITE(Fd, "\n");
+        _ -> ok
+    end,
+    
+    ?FWRITE(Fd, "\nets (_) -> exit(bad_match).");
 write_db_ets_1 ([T | L], Fd, Head) ->
     case Head of
         true -> ?FWRITE(Fd, "\n");
@@ -2266,8 +2266,13 @@ write_db_ets_1 ([T | L], Fd, Head) ->
     
     write_db_ets_1(L, Fd, false).
     
-write_db_ets_2 ([], _, _) ->
-    ok;
+write_db_ets_2 ([], Fd, Head) ->
+    case Head of
+        true -> ?FWRITE(Fd, "\n");
+        _ -> ok
+    end,
+    
+    ?FWRITE(Fd, "\nets (_, _) -> exit(bad_match).");
 write_db_ets_2 ([T | L], Fd, Head) ->
     case Head of
         true -> ?FWRITE(Fd, "\n");

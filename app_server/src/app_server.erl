@@ -28,7 +28,10 @@ start (_Type, _StartArgs) ->
     start_socket_proxy_sup(),
     start_socket_sup(),
     start_gamedb_mysql(),
+    
     game_db_init:init(),
+    app_ets:init(),
+    
     start_gamedb_sync_worker_0(),
     start_gamedb_sync_worker_1(),
     start_gamedb_sync(),

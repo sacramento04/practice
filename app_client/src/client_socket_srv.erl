@@ -34,9 +34,8 @@ wait_connect (Id) ->
         {packet, 4}
     ],
     
-    case gen_tcp:connect("192.168.24.88", 8889, Options, ?TIME_OUT) of
+    case gen_tcp:connect(?SERVER_IP, ?SERVER_PORT, Options, ?TIME_OUT) of
         {ok, Socket} ->
-            gen_tcp:send(Socket, list_to_binary("Say hello from client [" ++ integer_to_list(Id) ++ "].")),
             Socket;
         Reason ->
             ?INFO("[wait_connect] connect failed, reason: ~p~n", [Reason]),
