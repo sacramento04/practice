@@ -891,7 +891,7 @@ generate_router (Doc) ->
         || Pro <- Doc #doc.pro_list
     ],
     
-    ?FWRITE(Fd, ".", -1),
+    ?FWRITE(Fd, "\n\nroute_request (_, _, _, State) ->\n\t{nil, nil, State}."),
     ?FCLOSE(Fd).
     
 write_action_field (Fd, A, PN) ->
